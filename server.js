@@ -1,4 +1,3 @@
-const path = require('path');
 const express = require('express');
 
 const { graphqlHTTP } = require('express-graphql');
@@ -8,15 +7,13 @@ const { loadFilesSync } = require('@graphql-tools/load-files');
 
 const typesArray = loadFilesSync('**/*', {
   extensions: ['graphql'],
-  // ignoreIndex: true,
-  // cwd: path.join(__dirname, 'types'),
 });
 
-const resolversArray = loadFilesSync('**/*.resolvers', { extensions: ['js'] });
+const resolversArray = loadFilesSync('**/*', { extensions: ['resolver.js'] });
 
 const schema = makeExecutableSchema({
   typeDefs: typesArray,
-  resolvers:resolversArray,
+  resolvers: resolversArray,
 });
 
 // The root provides a resolver function for each API endpoint
