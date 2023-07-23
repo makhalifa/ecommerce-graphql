@@ -1,6 +1,12 @@
+const http = require('http');
 const express = require('express');
+const bodyParser = require('body-parser');
 
-const { graphqlHTTP } = require('express-graphql');
+const { ApolloServer } = require('@apollo/server');
+const { expressMiddleware } = require('@apollo/server/express4');
+const {
+  ApolloServerPluginDrainHttpServer,
+} = require('@apollo/server/plugin/drainHttpServer');
 
 const { makeExecutableSchema } = require('@graphql-tools/schema');
 const { loadFilesSync } = require('@graphql-tools/load-files');
@@ -11,28 +17,21 @@ const typesArray = loadFilesSync('**/*', {
 
 const resolversArray = loadFilesSync('**/*', { extensions: ['resolver.js'] });
 
-const schema = makeExecutableSchema({
-  typeDefs: typesArray,
-  resolvers: resolversArray,
-});
+async function startServer() {
+  const app = express();
+  const httpServer = http.createServer(app);
 
-// The root provides a resolver function for each API endpoint
-const root = {
-  products: require('./products/products.model'),
-  orders: require('./orders/orders.model'),
-};
+  const server = new ApolloServer({
+    typeDefs: typesArray,
+    resolvers: resolversArray,
+    plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+  });
 
-const app = express();
-app.use(express.json()); // Parse incoming JSON payloads
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded payloads
+  await server.start();
+  app.use('/graphql',bodyParser.json(), expressMiddleware(server));
+  httpServer.listen(4000, () => {
+    console.log(`🚀 Server ready at http://localhost:4000`);
+  });
+}
 
-app.use(
-  '/graphql',
-  graphqlHTTP({
-    schema,
-    rootValue: root,
-    graphiql: true,
-  })
-);
-
-app.listen(4000, () => console.log('GraphQL server running on port 4000'));
+startServer();
